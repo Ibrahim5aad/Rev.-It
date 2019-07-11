@@ -8,7 +8,7 @@ About Rev. It:
 
 Coded by Ibrahim Saad.
 
-Rev. It is still under development and some functionalities of some scripts may will be expanded.Rev. It is meant to be of a structural purpose. I'm new to programming and Revit API and those plugins is just the outcome of my self-learning process.
+Rev. It is still under development and some functionalities of some scripts may will be expanded. Rev. It is meant to be of a structural purpose. I'm new to programming and Revit API and those plugins is just the outcome of my self-learning process.
 
 
 Contribution
