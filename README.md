@@ -1,7 +1,7 @@
 Rev. It
 ===
 
-Rev. It is an extension for Revit add-in named pyRevit. So before using Rev. It you should download and install pyRevit from http://eirannejad.github.io/pyRevit/
+Rev. It is an extension for Revit add-in named pyRevit. So before using Rev. It you should download and install pyRevit from: http://eirannejad.github.io/pyRevit/
 
 About Rev. It:
 ---
