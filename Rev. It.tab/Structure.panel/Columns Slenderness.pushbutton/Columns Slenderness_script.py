@@ -39,7 +39,9 @@ def get_cols_to_beams(beams):
        
     colsbi = []
     colsb = []
+    
     for beam in beams:
+        #Beam location and curve
         lc = beam.Location
         curve = lc.Curve
         
@@ -47,34 +49,49 @@ def get_cols_to_beams(beams):
         param = curve.GetEndParameter(0)
         transform = curve.ComputeDerivatives(param, False)
         tangent = transform.BasisX
+        
+        
+     
+        # Use bounding box to determine elevation of
+        # bottom of beam
           
         bb = beam.get_BoundingBox( None )
-        
         inch = 1.0/12.0
         beamBottom = bb.Min.Z
         
+        #The centre of the arcs is 1 ince below the beam bottom 
         arcCenter = XYZ(p.X, p.Y, beamBottom - inch)
         
+        #Construct a plane for the arc by an origin = arcCenter and a normal vetor = tangent
         plane = Plane(tangent, arcCenter)
         
+        #Create the chain of curves
         profileLoop = CurveLoop()
         
+        #Construct the circular arcs by passing the plane, the radius = inch, the start and end angles
         arc1 = Arc.Create(plane, inch, 0, math.pi)
         arc2 = Arc.Create(plane, inch, math.pi, 2*math.pi)
         
+        #Append the arcs to the loop
         profileLoop.Append(arc1)
         profileLoop.Append(arc2)
         
         loops = []
         loops.append(profileLoop)
-       
+        
         q = curve.GetEndPoint(1)
+        
+        #The direction vector
         v = q - p
+        
+        #Constuct the solid by passing the loops,the direction and the length
         solid = GeometryCreationUtilities.CreateExtrusionGeometry(loops, v, v.GetLength())
 
+        #Define an element filter based on the intersection of a given solid
         beamIntersectFilter = ElementIntersectsSolidFilter(solid)
         
-        col = FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_StructuralColumns).WhereElementIsNotElementType().WherePasses(beamIntersectFilter).ToElementIds()
+        #Collect the column instances that pass the intersection filter
+        col = FilteredElementCollector(doc).WhereElementIsNotElementType().OfCategory(BuiltInCategory.OST_StructuralColumns).WherePasses(beamIntersectFilter).ToElementIds()
         
         colsbi.append(col)
         
@@ -88,6 +105,11 @@ def get_cols_to_beams(beams):
 
 
 def k(column):
+
+    """a function returns a list
+       of kx and ky; coefficients that
+       depend on the end conditions of the
+       columns in x and y directions"""
 
     
     if column in cx:
@@ -225,8 +247,10 @@ for c in cols:
 
 
 
-#Getting the dimensions of the columns in x and y directions by making a bounding box
-#making a dictionaries if the x dim and y dim of columns
+#Getting the dimensions of the columns in x and y directions its bounding box properties
+#and making dictionaries of the x dim and y dim of columns
+#     key  =  Column Id
+#     value  =  X or Y dimensions
     
 xdict = {}
 ydict = {}
@@ -240,12 +264,12 @@ for cc in cols:
     ydict[cc.Id] = int(dimy*30.48)
     
 
-#getting beam depth
+#Getting the beam depth
 bbox = beams[0].get_BoundingBox(doc.ActiveView) 
 bdepth = int(30.48*(bbox.Max.Z - bbox.Min.Z)) #in centimeters
 
 
-#Getting slab thikness
+#Getting the slab thikness
 slab = all_elements_of_category(BuiltInCategory.OST_StructuralFraming)
 sbox = slab[0].get_BoundingBox(doc.ActiveView)
 sdepth = int(30.48*(sbox.Max.Z - sbox.Min.Z)) #in centimeters
@@ -259,16 +283,19 @@ colorx = Color(255, 0, 0)
 colory = Color(0, 255, 0)
 colorxy = Color(0, 0, 255)
 
+#Getting the Solid Fill pattern
 fillpatterns = FilteredElementCollector(doc).OfClass(FillPatternElement).ToElements()
 solidfill = None
 for pattern in fillpatterns:
     if pattern.GetFillPattern().IsSolidFill:
         solidfill= pattern
 
+
 t1 = Transaction(doc, "Create New View")
 t1.Start()
 
 
+#Creating a new 3D View to override the its Visibility/Graphics  
 views = FilteredElementCollector(doc).OfClass(ViewFamilyType)
 for view in views:
     if view.ViewFamily == ViewFamily.ThreeDimensional:
@@ -276,6 +303,7 @@ for view in views:
         new3d.Name = "Columns Slenderness Check"
         new3d.get_Parameter(BuiltInParameter.MODEL_GRAPHICS_STYLE).Set(4)
 
+#Hiding the Analytical Model elements in the new view
 for cat in new3d.Document.Settings.Categories:
     if cat.get_AllowsVisibilityControl(new3d):
         if cat.CategoryType == CategoryType.AnalyticalModel:
@@ -283,8 +311,13 @@ for cat in new3d.Document.Settings.Categories:
  
 t1.Commit()
 
+#Set the new veiw as the Active View
 uidoc.RequestViewChange(new3d)
 uidoc.ActiveView = new3d
+
+
+#Start anothe transaction to override the graphics settings of the columns
+#based on the Slenderness Ratio
  
 t2 = Transaction(doc, "Columns Slenderness via Colors")
 t2.Start()
